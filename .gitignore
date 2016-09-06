@@ -3,3 +3,6 @@
 
 # Mac OS files
 .DS_Store
+
+# Python Cache
+__pycache__
