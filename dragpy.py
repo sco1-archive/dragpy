@@ -15,6 +15,7 @@ class DraggableLine:
 
         self.parentfig = self.myline.figure.canvas
         self.parentax = ax
+        self.myline._label = 'dragobj'
 
         self.clickpress = self.parentfig.mpl_connect('button_press_event', self.on_click)  # Execute on mouse click
         self.clicked = False
@@ -23,13 +24,36 @@ class DraggableLine:
         # Executed on mouse click
         if event.inaxes != self.parentax: return  # See if the mouse is over the parent axes object
 
-        # See if the click is on top of this line object
-        contains, attrs = self.myline.contains(event)
-        if not contains: return
+        # Check for overlaps, make sure we only fire for one object per click
+        timetomove = self.shouldthismove(event)
+        if not timetomove: return
 
-        self.mousemotion = self.parentfig.mpl_connect('motion_notify_event', self.on_motion)
-        self.clickrelease = self.parentfig.mpl_connect('button_release_event', self.on_release)
+        self.mousemotion = self.parentfig.canvas.mpl_connect('motion_notify_event', self.on_motion)
+        self.clickrelease = self.parentfig.canvas.mpl_connect('button_release_event', self.on_release)
         self.clicked = True
+
+    def shouldthismove(self, event):
+        # Check to see if this object has been clicked on
+        contains, attrs = self.myline.contains(event)
+        if not contains:
+            # We haven't been clicked
+            timetomove = False
+        else:
+            # See how many draggable objects contains this event
+            firingobjs = []
+            for child in self.parentax.get_children():
+                if child._label == 'dragobj':
+                    contains, attrs = child.contains(event)
+                    if contains:
+                        firingobjs.append(child)
+
+            # Assume the last child object is the topmost rendered object, only move if we're it
+            if firingobjs[-1] == self.myline:
+                timetomove = True
+            else:
+                timetomove = False
+
+        return timetomove
 
     def on_motion(self, event):
         # Executed on mouse motion
