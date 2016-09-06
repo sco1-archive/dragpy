@@ -13,11 +13,11 @@ class DraggableLine:
             # throw an error
             pass
 
-        self.parentfig = self.myline.figure.canvas
+        self.parentcanvas = ax.figure.canvas
         self.parentax = ax
         self.myline._label = 'dragobj'
 
-        self.clickpress = self.parentfig.mpl_connect('button_press_event', self.on_click)  # Execute on mouse click
+        self.clickpress = self.parentcanvas.mpl_connect('button_press_event', self.on_click)  # Execute on mouse click
         self.clicked = False
 
     def on_click(self, event):
@@ -28,8 +28,8 @@ class DraggableLine:
         timetomove = self.shouldthismove(event)
         if not timetomove: return
 
-        self.mousemotion = self.parentfig.canvas.mpl_connect('motion_notify_event', self.on_motion)
-        self.clickrelease = self.parentfig.canvas.mpl_connect('button_release_event', self.on_release)
+        self.mousemotion = self.parentcanvas.mpl_connect('motion_notify_event', self.on_motion)
+        self.clickrelease = self.parentcanvas.mpl_connect('button_release_event', self.on_release)
         self.clicked = True
 
     def shouldthismove(self, event):
@@ -67,11 +67,11 @@ class DraggableLine:
             self.myline.set_xdata(self.parentax.get_xlim())
             self.myline.set_ydata(np.array([1, 1])*event.ydata)
 
-        self.parentfig.draw()
+        self.parentcanvas.draw()
 
     def on_release(self, event):
         self.clicked = False
 
-        self.parentfig.mpl_disconnect(self.mousemotion)
-        self.parentfig.mpl_disconnect(self.clickrelease)
-        self.parentfig.draw()
+        self.parentcanvas.mpl_disconnect(self.mousemotion)
+        self.parentcanvas.mpl_disconnect(self.clickrelease)
+        self.parentcanvas.draw()
