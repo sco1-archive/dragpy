@@ -36,7 +36,7 @@ class DragObj:
                     contains, attrs = child.contains(event)
                     if contains:
                         firingobjs.append(child)
-
+            
             # Assume the last child object is the topmost rendered object, only move if we're it
             if firingobjs[-1] is self.myobj:
                 timetomove = True
@@ -51,6 +51,11 @@ class DragObj:
         self.parentcanvas.mpl_disconnect(self.mousemotion)
         self.parentcanvas.mpl_disconnect(self.clickrelease)
         self.parentcanvas.draw()
+
+    def stopdrag(self):
+        self.myobj.set_url('')
+        self.parentcanvas.mpl_disconnect(self.clickpress)
+
 
 class DragLine(DragObj):
     def __init__(self, orientation, ax, position):
@@ -78,4 +83,4 @@ class DragLine(DragObj):
             self.myobj.set_xdata(self.parentax.get_xlim())
             self.myobj.set_ydata(np.array([1, 1])*event.ydata)
 
-        self.parentcanvas.draw()
+        self.parentcanvas.draw() 
