@@ -119,3 +119,11 @@ class DragEllipse(DragObj):
         self.oldcenter = self.myobj.center
 
         self.disconnect
+
+
+class DragCircle(DragEllipse):
+    def __init__(self, ax, xy, radius, **kwargs):
+        width = radius*2
+        height = radius*2
+
+        DragEllipse.__init__(self, ax, xy, width, height, **kwargs)
