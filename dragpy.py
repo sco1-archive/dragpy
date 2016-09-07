@@ -1,6 +1,6 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import matplotlib.lines as lines
 
 class DragObj:
     def __init__(self, ax):
@@ -66,17 +66,18 @@ class DragObj:
 
 
 class DragLine(DragObj):
-    def __init__(self, orientation, ax, position, **kwargs):
+    def __init__(self, ax, position, orientation, **kwargs):
         if orientation.lower() == 'horizontal':
-            self.myobj, = ax.plot(ax.get_xlim(), np.array([1, 1])*position, **kwargs)
+            self.myobj = lines.Line2D(ax.get_xlim(), np.array([1, 1])*position, **kwargs)
             self.orientation = orientation.lower()
         elif orientation.lower() == 'vertical':
-            self.myobj, = ax.plot(np.array([1, 1])*position, ax.get_ylim(), **kwargs)
+            self.myobj = lines.Line2D(np.array([1, 1])*position, ax.get_ylim(), **kwargs)
             self.orientation = orientation.lower()
         else:
             # throw an error
             pass
         
+        ax.add_artist(self.myobj)
         DragObj.__init__(self, ax)
 
     def on_motion(self, event):
