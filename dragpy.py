@@ -6,6 +6,7 @@ class DragObj:
         self.parentcanvas = ax.figure.canvas
         self.parentax = ax
 
+        self.myobj.set_url('dragobj')
         self.clickpress = self.parentcanvas.mpl_connect('button_press_event', self.on_click)  # Execute on mouse click
         self.clicked = False
 
@@ -31,13 +32,13 @@ class DragObj:
             # See how many draggable objects contains this event
             firingobjs = []
             for child in self.parentax.get_children():
-                if child._label == 'dragobj':
+                if child.get_url() == 'dragobj':
                     contains, attrs = child.contains(event)
                     if contains:
                         firingobjs.append(child)
 
             # Assume the last child object is the topmost rendered object, only move if we're it
-            if firingobjs[-1] == self.myobj:
+            if firingobjs[-1] is self.myobj:
                 timetomove = True
             else:
                 timetomove = False
@@ -53,8 +54,6 @@ class DragObj:
 
 class DragLine(DragObj):
     def __init__(self, orientation, ax, position):
-        DragObj.__init__(self, ax)
-
         if orientation.lower() == 'horizontal':
             self.myobj, = ax.plot(ax.get_xlim(), np.array([1, 1])*position)
             self.orientation = orientation.lower()
@@ -65,7 +64,7 @@ class DragLine(DragObj):
             # throw an error
             pass
 
-        self.myobj._label = 'dragobj'
+        DragObj.__init__(self, ax)
 
     def on_motion(self, event):
         # Executed on mouse motion
@@ -80,12 +79,3 @@ class DragLine(DragObj):
             self.myobj.set_ydata(np.array([1, 1])*event.ydata)
 
         self.parentcanvas.draw()
-
-fig = plt.figure()
-ax = fig.add_subplot(111)
-
-vl1 = DragLine('vertical', ax, 3)
-vl2 = DragLine('vertical', ax, 6)
-
-ax.set_xlim([0, 10])
-plt.show()
