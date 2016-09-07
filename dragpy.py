@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 class DragObj:
     def __init__(self, ax):
@@ -20,6 +21,11 @@ class DragObj:
 
         self.mousemotion = self.parentcanvas.mpl_connect('motion_notify_event', self.on_motion)
         self.clickrelease = self.parentcanvas.mpl_connect('button_release_event', self.on_release)
+        
+        # Add extra event data for patches to prevent jumping on drag
+        self.clickx = event.xdata  
+        self.clicky = event.ydata
+        
         self.clicked = True
     
     def shouldthismove(self, event):
@@ -47,7 +53,9 @@ class DragObj:
 
     def on_release(self, event):
         self.clicked = False
+        self.disconnect
 
+    def disconnect(self):
         self.parentcanvas.mpl_disconnect(self.mousemotion)
         self.parentcanvas.mpl_disconnect(self.clickrelease)
         self.parentcanvas.draw()
@@ -58,17 +66,17 @@ class DragObj:
 
 
 class DragLine(DragObj):
-    def __init__(self, orientation, ax, position):
+    def __init__(self, orientation, ax, position, **kwargs):
         if orientation.lower() == 'horizontal':
-            self.myobj, = ax.plot(ax.get_xlim(), np.array([1, 1])*position)
+            self.myobj, = ax.plot(ax.get_xlim(), np.array([1, 1])*position, **kwargs)
             self.orientation = orientation.lower()
         elif orientation.lower() == 'vertical':
-            self.myobj, = ax.plot(np.array([1, 1])*position, ax.get_ylim())
+            self.myobj, = ax.plot(np.array([1, 1])*position, ax.get_ylim(), **kwargs)
             self.orientation = orientation.lower()
         else:
             # throw an error
             pass
-
+        
         DragObj.__init__(self, ax)
 
     def on_motion(self, event):
@@ -83,4 +91,31 @@ class DragLine(DragObj):
             self.myobj.set_xdata(self.parentax.get_xlim())
             self.myobj.set_ydata(np.array([1, 1])*event.ydata)
 
-        self.parentcanvas.draw() 
+        self.parentcanvas.draw()
+
+
+class DragEllipse(DragObj):
+    def __init__(self, ax, xy, width, height, angle=0.0, **kwargs):
+        self.myobj = patches.Ellipse(xy, width, height, angle, **kwargs)
+        ax.add_artist(self.myobj)
+
+        DragObj.__init__(self, ax)
+        self.oldcenter = xy  # Store for motion callback
+
+    def on_motion(self, event):
+        # Executed on mouse motion
+        if not self.clicked: return  # See if we've clicked yet
+        if event.inaxes != self.parentax: return # See if we're moving over the parent axes object
+
+        oldx, oldy = self.oldcenter
+        dx = event.xdata - self.clickx
+        dy = event.ydata - self.clicky
+        self.myobj.center = [oldx + dx, oldy + dy]
+
+        self.parentcanvas.draw()
+
+    def on_release(self, event):
+        self.clicked = False
+        self.oldcenter = self.myobj.center
+
+        self.disconnect
