@@ -99,9 +99,10 @@ class DragPatch(DragObj):
         dy = event.ydata - self.clicky
         newxy = [oldx + dx, oldy + dy]
 
-        if type(self.myobj) is patches.Ellipse:
+        # EAFP vs. LBYL for patches with centers (e.g. ellipse) vs. xy location (e.g. rectangle)
+        try:
             self.myobj.center = newxy
-        else:
+        except AttributeError:
             self.myobj.xy = newxy
 
         self.parentcanvas.draw()
@@ -109,9 +110,10 @@ class DragPatch(DragObj):
     def on_release(self, event):
         self.clicked = False
         
-        if type(self.myobj) is patches.Ellipse:
+        # EAFP vs. LBYL for patches with centers (e.g. ellipse) vs. xy location (e.g. rectangle)
+        try:
             self.oldxy = self.myobj.center
-        else:
+        except AttributeError:
             self.oldxy = self.myobj.xy
 
         self.disconnect
@@ -143,10 +145,10 @@ class DragEllipse(DragPatch):
 
 class DragCircle(DragEllipse):
     def __init__(self, ax, xy, radius, **kwargs):
-        width = radius*2
-        height = radius*2
+        self.myobj = patches.Circle(xy, radius, **kwargs)
+        ax.add_artist(self.myobj)
 
-        DragEllipse.__init__(self, ax, xy, width, height, **kwargs)
+        DragPatch.__init__(self, ax, xy)
 
 
 class DragRectangle(DragPatch):
