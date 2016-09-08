@@ -66,18 +66,7 @@ class DragObj:
 
 
 class DragLine(DragObj):
-    def __init__(self, ax, position, orientation, **kwargs):
-        if orientation.lower() == 'horizontal':
-            self.myobj = lines.Line2D(ax.get_xlim(), np.array([1, 1])*position, **kwargs)
-            self.orientation = orientation.lower()
-        elif orientation.lower() == 'vertical':
-            self.myobj = lines.Line2D(np.array([1, 1])*position, ax.get_ylim(), **kwargs)
-            self.orientation = orientation.lower()
-        else:
-            # throw an error
-            pass
-        
-        ax.add_artist(self.myobj)
+    def __init__(self, ax):
         DragObj.__init__(self, ax)
 
     def on_motion(self, event):
@@ -94,32 +83,62 @@ class DragLine(DragObj):
 
         self.parentcanvas.draw()
 
-
-class DragEllipse(DragObj):
-    def __init__(self, ax, xy, width, height, angle=0.0, **kwargs):
-        self.myobj = patches.Ellipse(xy, width, height, angle, **kwargs)
-        ax.add_artist(self.myobj)
-
+class DragPatch(DragObj):
+    def __init__(self, ax, xy):
         DragObj.__init__(self, ax)
-        self.oldcenter = xy  # Store for motion callback
+    
+        self.oldxy = xy  # Store for motion callback
 
     def on_motion(self, event):
         # Executed on mouse motion
         if not self.clicked: return  # See if we've clicked yet
         if event.inaxes != self.parentax: return # See if we're moving over the parent axes object
 
-        oldx, oldy = self.oldcenter
+        oldx, oldy = self.oldxy
         dx = event.xdata - self.clickx
         dy = event.ydata - self.clicky
-        self.myobj.center = [oldx + dx, oldy + dy]
+        newxy = [oldx + dx, oldy + dy]
+
+        if type(self.myobj) is patches.Ellipse:
+            self.myobj.center = newxy
+        else:
+            self.myobj.xy = newxy
 
         self.parentcanvas.draw()
 
     def on_release(self, event):
         self.clicked = False
-        self.oldcenter = self.myobj.center
+        
+        if type(self.myobj) is patches.Ellipse:
+            self.oldxy = self.myobj.center
+        else:
+            self.oldxy = self.myobj.xy
 
         self.disconnect
+    
+
+class DragLine2D(DragLine):
+    def __init__(self, ax, position, orientation, **kwargs):
+        if orientation.lower() == 'horizontal':
+            self.myobj = lines.Line2D(ax.get_xlim(), np.array([1, 1])*position, **kwargs)
+            self.orientation = orientation.lower()
+        elif orientation.lower() == 'vertical':
+            self.myobj = lines.Line2D(np.array([1, 1])*position, ax.get_ylim(), **kwargs)
+            self.orientation = orientation.lower()
+        else:
+            # throw an error
+            pass
+        
+        ax.add_artist(self.myobj)
+        DragLine.__init__(self, ax)
+
+
+class DragEllipse(DragPatch):
+    def __init__(self, ax, xy, width, height, angle=0.0, **kwargs):
+        self.myobj = patches.Ellipse(xy, width, height, angle, **kwargs)
+        ax.add_artist(self.myobj)
+
+        DragPatch.__init__(self, ax, xy)
 
 
 class DragCircle(DragEllipse):
