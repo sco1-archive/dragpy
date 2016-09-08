@@ -144,7 +144,7 @@ class DragEllipse(DragPatch):
 
 
 class DragCircle(DragEllipse):
-    def __init__(self, ax, xy, radius, **kwargs):
+    def __init__(self, ax, xy, radius=5, **kwargs):
         self.myobj = patches.Circle(xy, radius, **kwargs)
         ax.add_artist(self.myobj)
 
@@ -154,6 +154,21 @@ class DragCircle(DragEllipse):
 class DragRectangle(DragPatch):
     def __init__(self, ax, xy, width, height, angle=0.0, **kwargs):
         self.myobj = patches.Rectangle(xy, width, height, angle, **kwargs)
+        ax.add_artist(self.myobj)
+
+        DragPatch.__init__(self, ax, xy)
+
+
+class DragArc(DragPatch):
+    def __init__(self, ax, xy, width, height, angle=0, theta1=0, theta2=360.00, **kwargs):
+        self.myobj = patches.Arc(xy, width, height, angle, theta1, theta2, **kwargs)
+        ax.add_artist(self.myobj)
+
+        DragPatch.__init__(self, ax, xy)
+
+class DragWedge(DragPatch):
+    def __init__(self, ax, center, r, theta1, theta2, width=None, **kwargs):
+        self.myobj = patches.Wedge(center, r, theta1, theta2, width, **kwargs)
         ax.add_artist(self.myobj)
 
         DragPatch.__init__(self, ax, xy)
