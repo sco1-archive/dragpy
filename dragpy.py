@@ -147,3 +147,11 @@ class DragCircle(DragEllipse):
         height = radius*2
 
         DragEllipse.__init__(self, ax, xy, width, height, **kwargs)
+
+
+class DragRectangle(DragPatch):
+    def __init__(self, ax, xy, width, height, angle=0.0, **kwargs):
+        self.myobj = patches.Rectangle(xy, width, height, angle, **kwargs)
+        ax.add_artist(self.myobj)
+
+        DragPatch.__init__(self, ax, xy)
