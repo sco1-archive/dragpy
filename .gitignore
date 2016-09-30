@@ -6,3 +6,6 @@
 
 # Python Cache
 __pycache__
+
+# Pycharm temp dir
+.idea
