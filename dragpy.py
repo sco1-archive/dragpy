@@ -99,10 +99,10 @@ class _DragPatch(_DragObj):
         dy = event.ydata - self.clicky
         newxy = [oldx + dx, oldy + dy]
 
-        # EAFP vs. LBYL for patches with centers (e.g. ellipse) vs. xy location (e.g. rectangle)
-        try:
+        # LBYL for patches with centers (e.g. ellipse) vs. xy location (e.g. rectangle)
+        if hasattr(self.myobj, 'center'):
             self.myobj.center = newxy
-        except AttributeError:
+        else:
             self.myobj.xy = newxy
 
         self.parentcanvas.draw()
@@ -110,10 +110,10 @@ class _DragPatch(_DragObj):
     def on_release(self, event):
         self.clicked = False
         
-        # EAFP vs. LBYL for patches with centers (e.g. ellipse) vs. xy location (e.g. rectangle)
-        try:
+        # LBYL for patches with centers (e.g. ellipse) vs. xy location (e.g. rectangle)
+        if hasattr(self.myobj, 'center'):
             self.oldxy = self.myobj.center
-        except AttributeError:
+        else:
             self.oldxy = self.myobj.xy
 
         self.disconnect()
