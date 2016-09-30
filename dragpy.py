@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.patches as patches
 import matplotlib.lines as lines
 
-class DragObj:
+class _DragObj:
     def __init__(self, ax):
         self.parentcanvas = ax.figure.canvas
         self.parentax = ax
@@ -53,7 +53,7 @@ class DragObj:
 
     def on_release(self, event):
         self.clicked = False
-        self.disconnect
+        self.disconnect()
 
     def disconnect(self):
         self.parentcanvas.mpl_disconnect(self.mousemotion)
@@ -65,9 +65,9 @@ class DragObj:
         self.parentcanvas.mpl_disconnect(self.clickpress)
 
 
-class DragLine(DragObj):
+class _DragLine(_DragObj):
     def __init__(self, ax):
-        DragObj.__init__(self, ax)
+        _DragObj.__init__(self, ax)
 
     def on_motion(self, event):
         # Executed on mouse motion
@@ -83,9 +83,9 @@ class DragLine(DragObj):
 
         self.parentcanvas.draw()
 
-class DragPatch(DragObj):
+class _DragPatch(_DragObj):
     def __init__(self, ax, xy):
-        DragObj.__init__(self, ax)
+        _DragObj.__init__(self, ax)
     
         self.oldxy = xy  # Store for motion callback
 
@@ -116,11 +116,11 @@ class DragPatch(DragObj):
         except AttributeError:
             self.oldxy = self.myobj.xy
 
-        self.disconnect
+        self.disconnect()
     
 
-class DragLine2D(DragLine):
-    def __init__(self, ax, position, orientation, **kwargs):
+class DragLine2D(_DragLine):
+    def __init__(self, ax, position, orientation='vertical', **kwargs):
         if orientation.lower() == 'horizontal':
             self.myobj = lines.Line2D(ax.get_xlim(), np.array([1, 1])*position, **kwargs)
             self.orientation = orientation.lower()
@@ -132,15 +132,15 @@ class DragLine2D(DragLine):
             pass
         
         ax.add_artist(self.myobj)
-        DragLine.__init__(self, ax)
+        _DragLine.__init__(self, ax)
 
 
-class DragEllipse(DragPatch):
+class DragEllipse(_DragPatch):
     def __init__(self, ax, xy, width, height, angle=0.0, **kwargs):
         self.myobj = patches.Ellipse(xy, width, height, angle, **kwargs)
         ax.add_artist(self.myobj)
 
-        DragPatch.__init__(self, ax, xy)
+        _DragPatch.__init__(self, ax, xy)
 
 
 class DragCircle(DragEllipse):
@@ -148,27 +148,27 @@ class DragCircle(DragEllipse):
         self.myobj = patches.Circle(xy, radius, **kwargs)
         ax.add_artist(self.myobj)
 
-        DragPatch.__init__(self, ax, xy)
+        _DragPatch.__init__(self, ax, xy)
 
 
-class DragRectangle(DragPatch):
+class DragRectangle(_DragPatch):
     def __init__(self, ax, xy, width, height, angle=0.0, **kwargs):
         self.myobj = patches.Rectangle(xy, width, height, angle, **kwargs)
         ax.add_artist(self.myobj)
 
-        DragPatch.__init__(self, ax, xy)
+        _DragPatch.__init__(self, ax, xy)
 
 
-class DragArc(DragPatch):
+class DragArc(_DragPatch):
     def __init__(self, ax, xy, width, height, angle=0, theta1=0, theta2=360.00, **kwargs):
         self.myobj = patches.Arc(xy, width, height, angle, theta1, theta2, **kwargs)
         ax.add_artist(self.myobj)
 
-        DragPatch.__init__(self, ax, xy)
+        _DragPatch.__init__(self, ax, xy)
 
-class DragWedge(DragPatch):
+class DragWedge(_DragPatch):
     def __init__(self, ax, center, r, theta1, theta2, width=None, **kwargs):
         self.myobj = patches.Wedge(center, r, theta1, theta2, width, **kwargs)
         ax.add_artist(self.myobj)
 
-        DragPatch.__init__(self, ax, xy)
+        _DragPatch.__init__(self, ax, center)
