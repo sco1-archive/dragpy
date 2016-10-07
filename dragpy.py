@@ -35,7 +35,7 @@ class _DragObj:
             # We haven't been clicked
             timetomove = False
         else:
-            # See how many draggable objects contains this event
+            # See how many draggable objects contain this event
             firingobjs = []
             for child in self.parentax.get_children():
                 if child.get_url() == 'dragobj':
@@ -83,6 +83,7 @@ class _DragLine(_DragObj):
 
         self.parentcanvas.draw()
 
+
 class _DragPatch(_DragObj):
     def __init__(self, ax, xy):
         _DragObj.__init__(self, ax)
@@ -100,10 +101,14 @@ class _DragPatch(_DragObj):
         newxy = [oldx + dx, oldy + dy]
 
         # LBYL for patches with centers (e.g. ellipse) vs. xy location (e.g. rectangle)
-        if hasattr(self.myobj, 'center'):
-            self.myobj.center = newxy
-        else:
-            self.myobj.xy = newxy
+        try:
+            # Wedge has to be a special snowflake and update doesn't work for basically everything else
+            self.myobj.update({'center': newxy})
+        except AttributeError:
+            if hasattr(self.myobj, 'center'):
+                self.myobj.center = newxy
+            else:
+                self.myobj.xy = newxy
 
         self.parentcanvas.draw()
 
@@ -165,6 +170,7 @@ class DragArc(_DragPatch):
         ax.add_artist(self.myobj)
 
         _DragPatch.__init__(self, ax, xy)
+
 
 class DragWedge(_DragPatch):
     def __init__(self, ax, center, r, theta1, theta2, width=None, **kwargs):
