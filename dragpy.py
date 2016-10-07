@@ -178,3 +178,11 @@ class DragWedge(_DragPatch):
         ax.add_artist(self.myobj)
 
         _DragPatch.__init__(self, ax, center)
+
+
+class DragRegularPolygon(_DragPatch):
+    def __init__(self, ax, xy, numVertices, radius=5, orientation=0, **kwargs):
+        self.myobj = patches.RegularPolygon(xy, numVertices, radius, orientation, **kwargs)
+        ax.add_artist(self.myobj)
+
+        _DragPatch.__init__(self, ax, xy)
