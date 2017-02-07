@@ -71,8 +71,12 @@ class _DragLine(_DragObj):
 
     def on_motion(self, event):
         # Executed on mouse motion
-        if not self.clicked: return  # See if we've clicked yet
-        if event.inaxes != self.parentax: return # See if we're moving over the parent axes object
+        if not self.clicked:
+            # See if we've clicked yet
+            return
+        if event.inaxes != self.parentax:
+            # See if we're moving over the parent axes object
+            return
 
         if self.orientation == 'vertical':
             if self.snapto:
@@ -154,12 +158,11 @@ class _DragPatch(_DragObj):
 
 class DragLine2D(_DragLine):
     def __init__(self, ax, position, orientation='vertical', snapto=None, **kwargs):
-        if orientation.lower() == 'horizontal':
+        self.orientation = orientation.lower()
+        if self.orientation == 'horizontal':
             self.myobj = lines.Line2D(ax.get_xlim(), np.array([1, 1])*position, **kwargs)
-            self.orientation = orientation.lower()
-        elif orientation.lower() == 'vertical':
+        elif self.orientation == 'vertical':
             self.myobj = lines.Line2D(np.array([1, 1])*position, ax.get_ylim(), **kwargs)
-            self.orientation = orientation.lower()
         else:
             raise ValueError(f"Unsupported orientation string: '{orientation}'")
 
@@ -194,6 +197,52 @@ class DragRectangle(_DragPatch):
         super().__init__(ax, xy)
 
 
+class DragWindow(_DragPatch):
+    def __init__(self, ax, primaryedge, windowsize, orientation='vertical', snapto=None, **kwargs):
+        self.orientation = orientation.lower()
+        if self.orientation == 'vertical':
+            axheight = get_axesextent(ax)[0]
+            xy = (primaryedge, ax.get_ylim()[0])
+            self.myobj = patches.Rectangle(xy, windowsize, axheight, 
+                                           alpha=0.25, facecolor='limegreen', edgecolor='limegreen',
+                                           **kwargs)
+            ax.add_artist(self.myobj)
+        elif self.orientation == 'horizontal':
+            axwidth = get_axesextent(ax)[1]
+            xy = (ax.get_xlim()[0], primaryedge)
+            self.myobj = patches.Rectangle(xy, windowsize, axwidth, **kwargs)
+            ax.add_artist(self.myobj)
+        else:
+            raise ValueError(f"Unsupported orientation string: '{orientation}'")
+
+        # TODO: Check to make sure snapto is a valid lineseries (or None)
+        self.snapto = snapto
+
+        super().__init__(ax, xy)
+    
+    def on_motion(self, event):
+        # Executed on mouse motion
+        if not self.clicked:
+             # See if we've clicked yet
+            return
+        if event.inaxes != self.parentax: 
+             # See if we're moving over the parent axes object
+            return
+        
+        oldx, oldy = self.oldxy
+        if self.orientation == 'horizontal':
+            dy = event.ydata - self.clicky
+            newxy = (oldx, oldy + dy)
+        elif self.orientation == 'vertical':
+            dx = event.xdata - self.clickx
+            newxy = (oldx + dx, oldy)
+
+        self.myobj.xy = newxy
+        print(newxy)
+
+        self.parentcanvas.draw()
+
+
 class DragArc(_DragPatch):
     def __init__(self, ax, xy, width, height, angle=0, theta1=0, theta2=360.00, **kwargs):
         self.myobj = patches.Arc(xy, width, height, angle, theta1, theta2, **kwargs)
@@ -216,3 +265,12 @@ class DragRegularPolygon(_DragPatch):
         ax.add_artist(self.myobj)
 
         super().__init__(ax, xy)
+
+def get_axesextent(ax):
+    xlim = ax.get_xlim()
+    ylim = ax.get_ylim()
+
+    xextent = xlim[1] - xlim[0]
+    yextent = ylim[1] - ylim[0]
+
+    return (xextent, yextent)
