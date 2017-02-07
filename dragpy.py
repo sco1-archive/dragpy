@@ -149,11 +149,19 @@ class DragLine2D(_DragLine):
         else:
             raise ValueError(f"Unsupported orientation string: '{orientation}'")
 
-        # TODO: Check to make sure snapto is a valid lineseries (or None)
-        self.snapto = snapto
-
         ax.add_artist(self.myobj)
         super().__init__(ax)
+
+        # Check to make sure snapto is a valid lineseries (or None) by checking 
+        # to see if it has valid x data
+        try:
+            snapto.get_xdata()
+        except AttributeError:
+            if snapto is not None:
+                # TODO: Throw a warning
+                snapto = None
+
+        self.snapto = snapto
 
 
 class DragEllipse(_DragPatch):
@@ -197,11 +205,19 @@ class DragWindow(_DragPatch):
             ax.add_artist(self.myobj)
         else:
             raise ValueError(f"Unsupported orientation string: '{orientation}'")
-
-        # TODO: Check to make sure snapto is a valid lineseries (or None)
-        self.snapto = snapto
-
+        
         super().__init__(ax, xy)
+
+        # Check to make sure snapto is a valid lineseries (or None) by checking 
+        # to see if it has valid x data
+        try:
+            snapto.get_xdata()
+        except AttributeError:
+            if snapto is not None:
+                # TODO: Throw a warning
+                snapto = None
+
+        self.snapto = snapto
     
     def on_motion(self, event):
         # Executed on mouse motion
