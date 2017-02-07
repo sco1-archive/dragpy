@@ -1,5 +1,6 @@
 import matplotlib.patches as patches
 import matplotlib.lines as lines
+import warnings
 
 class _DragObj:
     def __init__(self, ax):
@@ -158,7 +159,7 @@ class DragLine2D(_DragLine):
             snapto.get_xdata()
         except AttributeError:
             if snapto is not None:
-                # TODO: Throw a warning
+                warnings.warn(f"Unknown snapto lineseries: '{snapto}'\nIgnoring...")
                 snapto = None
 
         self.snapto = snapto
@@ -214,7 +215,7 @@ class DragWindow(_DragPatch):
             snapto.get_xdata()
         except AttributeError:
             if snapto is not None:
-                # TODO: Throw a warning
+                warnings.warn(f"Unknown snapto lineseries: '{snapto}'\nIgnoring...")
                 snapto = None
 
         self.snapto = snapto
