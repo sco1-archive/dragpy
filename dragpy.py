@@ -79,30 +79,14 @@ class _DragLine(_DragObj):
 
         if self.orientation == 'vertical':
             if self.snapto:
-                snaptoxdata = self.snapto.get_xdata()
-                minx = min(snaptoxdata)
-                maxx = max(snaptoxdata)
-                if event.xdata > maxx:
-                    xcoord = maxx
-                elif event.xdata < minx:
-                    xcoord = minx
-                else:
-                    xcoord = event.xdata
+                xcoord = draglimiter(self.snapto.get_xdata(), event.xdata)
             else:
                 xcoord = event.xdata
             self.myobj.set_xdata(listmult([1, 1], xcoord))
             self.myobj.set_ydata(self.parentax.get_ylim())
         elif self.orientation == 'horizontal':
             if self.snapto:
-                snaptoydata = self.snapto.get_ydata()
-                miny = min(snaptoydata)
-                maxy = max(snaptoydata)
-                if event.ydata > maxy:
-                    ycoord = maxy
-                elif event.ydata < miny:
-                    ycoord = miny
-                else:
-                    ycoord = event.ydata
+                ycoord = draglimiter(self.snapto.get_ydata(), event.ydata)
             else:
                 ycoord = event.ydata
             self.myobj.set_xdata(self.parentax.get_xlim())
@@ -237,7 +221,6 @@ class DragWindow(_DragPatch):
             newxy = (oldx + dx, oldy)
 
         self.myobj.xy = newxy
-        print(newxy)
 
         self.parentcanvas.draw()
 
@@ -277,3 +260,14 @@ def get_axesextent(ax):
 
 def listmult(A, c):
     return [i * c for i in A]
+
+
+def draglimiter(dataseries, querypoint):
+    minvalue = min(dataseries)
+    maxvalue = max(dataseries)
+    if querypoint > maxvalue:
+        return maxvalue
+    elif querypoint < minvalue:
+        return minvalue
+    else:
+        return querypoint
