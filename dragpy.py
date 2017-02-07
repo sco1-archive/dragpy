@@ -1,4 +1,3 @@
-import numpy as np
 import matplotlib.patches as patches
 import matplotlib.lines as lines
 
@@ -91,7 +90,7 @@ class _DragLine(_DragObj):
                     xcoord = event.xdata
             else:
                 xcoord = event.xdata
-            self.myobj.set_xdata(np.array([1, 1])*xcoord)
+            self.myobj.set_xdata(listmult([1, 1], xcoord))
             self.myobj.set_ydata(self.parentax.get_ylim())
         elif self.orientation == 'horizontal':
             if self.snapto:
@@ -107,7 +106,7 @@ class _DragLine(_DragObj):
             else:
                 ycoord = event.ydata
             self.myobj.set_xdata(self.parentax.get_xlim())
-            self.myobj.set_ydata(np.array([1, 1])*ycoord)
+            self.myobj.set_ydata(listmult([1, 1], ycoord))
 
         self.parentcanvas.draw()
 
@@ -160,9 +159,9 @@ class DragLine2D(_DragLine):
     def __init__(self, ax, position, orientation='vertical', snapto=None, **kwargs):
         self.orientation = orientation.lower()
         if self.orientation == 'horizontal':
-            self.myobj = lines.Line2D(ax.get_xlim(), np.array([1, 1])*position, **kwargs)
+            self.myobj = lines.Line2D(ax.get_xlim(), listmult([1, 1], position), **kwargs)
         elif self.orientation == 'vertical':
-            self.myobj = lines.Line2D(np.array([1, 1])*position, ax.get_ylim(), **kwargs)
+            self.myobj = lines.Line2D(listmult([1, 1], position), ax.get_ylim(), **kwargs)
         else:
             raise ValueError(f"Unsupported orientation string: '{orientation}'")
 
@@ -274,3 +273,7 @@ def get_axesextent(ax):
     yextent = ylim[1] - ylim[0]
 
     return (xextent, yextent)
+
+
+def listmult(A, c):
+    return [i * c for i in A]
