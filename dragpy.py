@@ -1,6 +1,6 @@
-import numpy as np
 import matplotlib.patches as patches
 import matplotlib.lines as lines
+import warnings
 
 class _DragObj:
     def __init__(self, ax):
@@ -71,39 +71,27 @@ class _DragLine(_DragObj):
 
     def on_motion(self, event):
         # Executed on mouse motion
-        if not self.clicked: return  # See if we've clicked yet
-        if event.inaxes != self.parentax: return # See if we're moving over the parent axes object
+        if not self.clicked:
+            # See if we've clicked yet
+            return
+        if event.inaxes != self.parentax:
+            # See if we're moving over the parent axes object
+            return
 
         if self.orientation == 'vertical':
             if self.snapto:
-                snaptoxdata = self.snapto.get_xdata()
-                minx = min(snaptoxdata)
-                maxx = max(snaptoxdata)
-                if event.xdata > maxx:
-                    xcoord = maxx
-                elif event.xdata < minx:
-                    xcoord = minx
-                else:
-                    xcoord = event.xdata
+                xcoord = draglimiter(self.snapto.get_xdata(), event.xdata)
             else:
                 xcoord = event.xdata
-            self.myobj.set_xdata(np.array([1, 1])*xcoord)
+            self.myobj.set_xdata(listmult([1, 1], xcoord))
             self.myobj.set_ydata(self.parentax.get_ylim())
         elif self.orientation == 'horizontal':
             if self.snapto:
-                snaptoydata = self.snapto.get_ydata()
-                miny = min(snaptoydata)
-                maxy = max(snaptoydata)
-                if event.ydata > maxy:
-                    ycoord = maxy
-                elif event.ydata < miny:
-                    ycoord = miny
-                else:
-                    ycoord = event.ydata
+                ycoord = draglimiter(self.snapto.get_ydata(), event.ydata)
             else:
                 ycoord = event.ydata
             self.myobj.set_xdata(self.parentax.get_xlim())
-            self.myobj.set_ydata(np.array([1, 1])*ycoord)
+            self.myobj.set_ydata(listmult([1, 1], ycoord))
 
         self.parentcanvas.draw()
 
@@ -154,20 +142,27 @@ class _DragPatch(_DragObj):
 
 class DragLine2D(_DragLine):
     def __init__(self, ax, position, orientation='vertical', snapto=None, **kwargs):
-        if orientation.lower() == 'horizontal':
-            self.myobj = lines.Line2D(ax.get_xlim(), np.array([1, 1])*position, **kwargs)
-            self.orientation = orientation.lower()
-        elif orientation.lower() == 'vertical':
-            self.myobj = lines.Line2D(np.array([1, 1])*position, ax.get_ylim(), **kwargs)
-            self.orientation = orientation.lower()
+        self.orientation = orientation.lower()
+        if self.orientation == 'horizontal':
+            self.myobj = lines.Line2D(ax.get_xlim(), listmult([1, 1], position), **kwargs)
+        elif self.orientation == 'vertical':
+            self.myobj = lines.Line2D(listmult([1, 1], position), ax.get_ylim(), **kwargs)
         else:
             raise ValueError(f"Unsupported orientation string: '{orientation}'")
 
-        # TODO: Check to make sure snapto is a valid lineseries (or None)
-        self.snapto = snapto
-
         ax.add_artist(self.myobj)
         super().__init__(ax)
+
+        # Check to make sure snapto is a valid lineseries (or None) by checking 
+        # to see if it has valid x data
+        try:
+            snapto.get_xdata()
+        except AttributeError:
+            if snapto is not None:
+                warnings.warn(f"Unknown snapto lineseries: '{snapto}'\nIgnoring...")
+                snapto = None
+
+        self.snapto = snapto
 
 
 class DragEllipse(_DragPatch):
@@ -194,6 +189,59 @@ class DragRectangle(_DragPatch):
         super().__init__(ax, xy)
 
 
+class DragWindow(_DragPatch):
+    def __init__(self, ax, primaryedge, windowsize, orientation='vertical', snapto=None, **kwargs):
+        self.orientation = orientation.lower()
+        if self.orientation == 'vertical':
+            axheight = get_axesextent(ax)[0]
+            xy = (primaryedge, ax.get_ylim()[0])
+            self.myobj = patches.Rectangle(xy, windowsize, axheight, 
+                                           alpha=0.25, facecolor='limegreen', edgecolor='limegreen',
+                                           **kwargs)
+            ax.add_artist(self.myobj)
+        elif self.orientation == 'horizontal':
+            axwidth = get_axesextent(ax)[1]
+            xy = (ax.get_xlim()[0], primaryedge)
+            self.myobj = patches.Rectangle(xy, windowsize, axwidth, **kwargs)
+            ax.add_artist(self.myobj)
+        else:
+            raise ValueError(f"Unsupported orientation string: '{orientation}'")
+        
+        super().__init__(ax, xy)
+
+        # Check to make sure snapto is a valid lineseries (or None) by checking 
+        # to see if it has valid x data
+        try:
+            snapto.get_xdata()
+        except AttributeError:
+            if snapto is not None:
+                warnings.warn(f"Unknown snapto lineseries: '{snapto}'\nIgnoring...")
+                snapto = None
+
+        self.snapto = snapto
+    
+    def on_motion(self, event):
+        # Executed on mouse motion
+        if not self.clicked:
+             # See if we've clicked yet
+            return
+        if event.inaxes != self.parentax: 
+             # See if we're moving over the parent axes object
+            return
+        
+        oldx, oldy = self.oldxy
+        if self.orientation == 'horizontal':
+            dy = event.ydata - self.clicky
+            newxy = (oldx, oldy + dy)
+        elif self.orientation == 'vertical':
+            dx = event.xdata - self.clickx
+            newxy = (oldx + dx, oldy)
+
+        self.myobj.xy = newxy
+
+        self.parentcanvas.draw()
+
+
 class DragArc(_DragPatch):
     def __init__(self, ax, xy, width, height, angle=0, theta1=0, theta2=360.00, **kwargs):
         self.myobj = patches.Arc(xy, width, height, angle, theta1, theta2, **kwargs)
@@ -216,3 +264,27 @@ class DragRegularPolygon(_DragPatch):
         ax.add_artist(self.myobj)
 
         super().__init__(ax, xy)
+
+def get_axesextent(ax):
+    xlim = ax.get_xlim()
+    ylim = ax.get_ylim()
+
+    xextent = xlim[1] - xlim[0]
+    yextent = ylim[1] - ylim[0]
+
+    return (xextent, yextent)
+
+
+def listmult(A, c):
+    return [i * c for i in A]
+
+
+def draglimiter(dataseries, querypoint):
+    minvalue = min(dataseries)
+    maxvalue = max(dataseries)
+    if querypoint > maxvalue:
+        return maxvalue
+    elif querypoint < minvalue:
+        return minvalue
+    else:
+        return querypoint
