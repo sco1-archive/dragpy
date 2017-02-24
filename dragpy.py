@@ -4,6 +4,11 @@ import warnings
 
 class _DragObj:
     def __init__(self, ax):
+        """Generic draggable object initialization
+        
+        Draggable object is tagged as 'dragobj' using matplotlib's graphics 
+        objects' url property
+        """
         self.parentcanvas = ax.figure.canvas
         self.parentax = ax
 
@@ -12,10 +17,11 @@ class _DragObj:
         self.clicked = False
 
     def on_click(self, event):
+        """Wrapper for on_click and motion callback methods"""
         # Executed on mouse click
         if event.inaxes != self.parentax: return  # See if the mouse is over the parent axes object
 
-        # Check for overlaps, make sure we only fire for one object per click
+        # Check for object overlap
         timetomove = self.shouldthismove(event)
         if not timetomove: return
 
@@ -29,6 +35,11 @@ class _DragObj:
         self.clicked = True
     
     def shouldthismove(self, event):
+        """Determine whether the event firing object is the topmost rendered
+
+        Mitigates issues when the on_click callback fires for multiple 
+        overlapping objects at the same time, causing both to move
+        """
         # Check to see if this object has been clicked on
         contains, attrs = self.myobj.contains(event)
         if not contains:
@@ -52,24 +63,36 @@ class _DragObj:
         return timetomove
 
     def on_release(self, event):
+        """Mouse button release callback"""
         self.clicked = False
         self.disconnect()
 
     def disconnect(self):
+        """Disconnect mouse motion and click release callbacks from parent canvas"""
         self.parentcanvas.mpl_disconnect(self.mousemotion)
         self.parentcanvas.mpl_disconnect(self.clickrelease)
         self.parentcanvas.draw()
 
     def stopdrag(self):
+        """Disconnect on_click callback and remove dragobj url property tag"""
         self.myobj.set_url('')
         self.parentcanvas.mpl_disconnect(self.clickpress)
 
 
 class _DragLine(_DragObj):
     def __init__(self, ax):
+        """Generic draggable line class
+        
+        Provides line-specific on_motion callback
+        """
         super().__init__(ax)
 
     def on_motion(self, event):
+        """Update position of draggable line on mouse motion
+        
+        If self.snapto is set to a valid lineseries object, dragging will be
+        limited to the extent of the lineseries
+        """
         # Executed on mouse motion
         if not self.clicked:
             # See if we've clicked yet
@@ -98,11 +121,26 @@ class _DragLine(_DragObj):
 
 class _DragPatch(_DragObj):
     def __init__(self, ax, xy):
+        """Generic draggable line class
+        
+        Provides patch-specific on_motion callback and helpers
+
+        self.oldxy stores the previous location of the patch, or its initial
+        location if the object has not been moved. This is used for the 
+        on_motion cllback
+        """
         super().__init__(ax)
     
         self.oldxy = xy  # Store for motion callback
 
     def on_motion(self, event):
+        """Update position of draggable patch on mouse motion
+        
+        self.oldxy is used to calculate the mouse motion delta in the xy 
+        directions. This prevents the patch from jumping to the mouse location
+        due to (most) objects beind defined from either their lower left corner
+        or their center.
+        """
         # Executed on mouse motion
         if not self.clicked:
              # See if we've clicked yet
@@ -129,6 +167,7 @@ class _DragPatch(_DragObj):
         self.parentcanvas.draw()
 
     def on_release(self, event):
+        """Update helper xy property"""
         self.clicked = False
         
         # LBYL for patches with centers (e.g. ellipse) vs. xy location (e.g. rectangle)
