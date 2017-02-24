@@ -189,23 +189,22 @@ class DragRectangle(_DragPatch):
         super().__init__(ax, xy)
 
 
-class DragWindow(_DragPatch):
-    def __init__(self, ax, primaryedge, windowsize, orientation='vertical', snapto=None, **kwargs):
+class FixedWindow(_DragPatch):
+    def __init__(self, ax, primaryedge, windowsize, orientation='vertical', snapto=None,
+                 alpha=0.25, facecolor='limegreen', edgecolor='green', **kwargs):
         self.orientation = orientation.lower()
         if self.orientation == 'vertical':
-            axheight = get_axesextent(ax)[0]
+            axesdimension = get_axesextent(ax)[1]  # Axes height
             xy = (primaryedge, ax.get_ylim()[0])
-            self.myobj = patches.Rectangle(xy, windowsize, axheight, 
-                                           alpha=0.25, facecolor='limegreen', edgecolor='limegreen',
-                                           **kwargs)
-            ax.add_artist(self.myobj)
         elif self.orientation == 'horizontal':
-            axwidth = get_axesextent(ax)[1]
+            axesdimension = get_axesextent(ax)[0]  # Axes width
             xy = (ax.get_xlim()[0], primaryedge)
-            self.myobj = patches.Rectangle(xy, windowsize, axwidth, **kwargs)
-            ax.add_artist(self.myobj)
         else:
             raise ValueError(f"Unsupported orientation string: '{orientation}'")
+
+        self.myobj = patches.Rectangle(xy, windowsize, axesdimension, alpha=alpha,
+                                       facecolor=facecolor, edgecolor=edgecolor, **kwargs)
+        ax.add_artist(self.myobj)
         
         super().__init__(ax, xy)
 
