@@ -273,6 +273,16 @@ class Window:
         self.spanpatch = patches.Rectangle(xy, width, height, color=facecolor, alpha=alpha)
         ax.add_artist(self.spanpatch)
 
+        # TODO: Refactor to monitor changes in edge locations rather than firing on all redraws
+        ax.figure.canvas.mpl_connect('draw_event', self.resizespanpatch)
+
+    def resizespanpatch(self, event):
+        if self.spanpatch:
+            xy, width, height = self.spanpatchdims(*self.edges)
+            self.spanpatch.set_xy(xy)
+            self.spanpatch.set_width(width)
+            self.spanpatch.set_height(height)
+
     @staticmethod
     def spanpatchdims(edge1, edge2):
         # Find leftmost, rightmost points
