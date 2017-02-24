@@ -164,6 +164,24 @@ class DragLine2D(_DragLine):
 
         self.snapto = snapto
 
+    def get_xydata(self):
+        """Return the xy data as a Nx2 numpy array."""
+        return self.myobj.get_xydata()
+    
+    def get_xdata(self, orig=True):
+        """Return the xdata.
+
+        If orig is True, return the original data, else the processed data.
+        """
+        return self.myobj.get_xdata(orig)
+    
+    def get_ydata(self, orig=True):
+        """Return the ydata.
+
+        If orig is True, return the original data, else the processed data.
+        """
+        return self.myobj.get_ydata(orig)
+
 
 class DragEllipse(_DragPatch):
     def __init__(self, ax, xy, width, height, angle=0.0, **kwargs):
@@ -239,6 +257,37 @@ class FixedWindow(_DragPatch):
         self.myobj.xy = newxy
 
         self.parentcanvas.draw()
+
+
+class Window:
+    def __init__(self, ax, primaryedge, windowstartsize, orientation='vertical', snapto=None, 
+                 alpha=0.25, facecolor='limegreen', edgecolor='green'):
+        # Initialize window edges
+        # DragLine2D call will take care of orientation validation
+        self.edges = []
+        self.edges.append(DragLine2D(ax, primaryedge, orientation, snapto, color=edgecolor))
+        self.edges.append(DragLine2D(ax, (primaryedge+windowstartsize), orientation, snapto, color=edgecolor))
+
+        # Add spanning rectangle
+        xy, width, height = self.spanpatchdims(*self.edges)
+        self.spanpatch = patches.Rectangle(xy, width, height, color=facecolor, alpha=alpha)
+        ax.add_artist(self.spanpatch)
+
+    @staticmethod
+    def spanpatchdims(edge1, edge2):
+        # Find leftmost, rightmost points
+        minx = min(edge1.get_xdata() + edge2.get_xdata())  # Joining the two lists, not adding them
+        maxx = max(edge1.get_xdata() + edge2.get_xdata())  # Joining the two lists, not adding them
+
+        # Find bottommostm, topmost points
+        miny = min(edge1.get_ydata() + edge2.get_ydata())  # Joining the two lists, not adding them
+        maxy = max(edge1.get_ydata() + edge2.get_ydata())  # Joining the two lists, not adding them
+
+        xy = (minx, miny)
+        width = abs(maxx - minx)
+        height = abs(maxy - miny)
+
+        return xy, width, height
 
 
 class DragArc(_DragPatch):
