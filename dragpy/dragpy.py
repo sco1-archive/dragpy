@@ -221,6 +221,9 @@ class DragLine2D(_DragLine):
         """
         return self.myobj.get_ydata(orig)
 
+    @staticmethod
+    def get_validorientations():
+        return ('vertical', 'horizontal')
 
 class DragEllipse(_DragPatch):
     def __init__(self, ax, xy, width, height, angle=0.0, **kwargs):
@@ -297,6 +300,17 @@ class FixedWindow(_DragPatch):
 
         self.parentcanvas.draw()
 
+    def get_bounds(self):
+        xy = self.myobj.get_xy()
+        if self.orientation == 'vertical':
+            return (xy[0], xy[0] + self.myobj.get_width())
+        elif self.orientation == 'horizontal':
+            return (xy[1], xy[1] + self.myobj.get_height())
+
+    @staticmethod
+    def get_validorientations():
+        return ('vertical', 'horizontal')
+
 
 class Window:
     def __init__(self, ax, primaryedge, windowstartsize, orientation='vertical', snapto=None, 
@@ -306,6 +320,7 @@ class Window:
         self.edges = []
         self.edges.append(DragLine2D(ax, primaryedge, orientation, snapto, color=edgecolor))
         self.edges.append(DragLine2D(ax, (primaryedge+windowstartsize), orientation, snapto, color=edgecolor))
+        self.orientation = orientation
 
         # Add spanning rectangle
         xy, width, height = self.spanpatchdims(*self.edges)
@@ -337,6 +352,17 @@ class Window:
         height = abs(maxy - miny)
 
         return xy, width, height
+
+    def get_bounds(self):
+        xy = self.spanpatch.get_xy()
+        if self.orientation == 'vertical':
+            return (xy[0], xy[0] + self.spanpatch.get_width())
+        elif self.orientation == 'horizontal':
+            return (xy[1], xy[1] + self.spanpatch.get_height())
+
+    @staticmethod
+    def get_validorientations():
+        return ('vertical', 'horizontal')
 
 
 class DragArc(_DragPatch):
