@@ -259,10 +259,10 @@ class FixedWindow(_DragPatch):
                  alpha=0.25, facecolor='limegreen', edgecolor='green', **kwargs):
         self.orientation = orientation.lower()
         if self.orientation == 'vertical':
-            axesdimension = get_axesextent(ax)[1]  # Axes height
+            axesdimension = axesextent(ax)[1]  # Axes height
             xy = (primaryedge, ax.get_ylim()[0])
         elif self.orientation == 'horizontal':
-            axesdimension = get_axesextent(ax)[0]  # Axes width
+            axesdimension = axesextent(ax)[0]  # Axes width
             xy = (ax.get_xlim()[0], primaryedge)
         else:
             raise ValueError(f"Unsupported orientation string: '{orientation}'")
@@ -314,7 +314,7 @@ class FixedWindow(_DragPatch):
             return (xy[1], xy[1] + self.myobj.get_height())
 
     @staticmethod
-    def get_validorientations():
+    def validorientations():
         return ('vertical', 'horizontal')
 
 
@@ -354,21 +354,21 @@ class Window:
     @staticmethod
     def spanpatchdims(edge1, edge2):
         # Find leftmost, rightmost points
-        minx = min(edge1.get_xdata() + edge2.get_xdata())  # Joining the two lists, not adding them
-        maxx = max(edge1.get_xdata() + edge2.get_xdata())  # Joining the two lists, not adding them
+        minx = min(edge1.xdata + edge2.xdata)  # Joining the two lists, not adding them
+        maxx = max(edge1.xdata + edge2.xdata)  # Joining the two lists, not adding them
 
-        # Find bottommostm, topmost points
-        miny = min(edge1.get_ydata() + edge2.get_ydata())  # Joining the two lists, not adding them
-        maxy = max(edge1.get_ydata() + edge2.get_ydata())  # Joining the two lists, not adding them
+        # Find bottommost, topmost points
+        miny = min(edge1.ydata + edge2.ydata)  # Joining the two lists, not adding them
+        maxy = max(edge1.ydata + edge2.ydata)  # Joining the two lists, not adding them
 
         xy = (minx, miny)
         width = abs(maxx - minx)
         height = abs(maxy - miny)
 
         return xy, width, height
-
+    
     @staticmethod
-    def get_validorientations():
+    def validorientations():
         return ('vertical', 'horizontal')
 
 
@@ -395,7 +395,7 @@ class DragRegularPolygon(_DragPatch):
 
         super().__init__(ax, xy)
 
-def get_axesextent(ax):
+def axesextent(ax):
     xlim = ax.get_xlim()
     ylim = ax.get_ylim()
 
