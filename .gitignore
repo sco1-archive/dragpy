@@ -1,11 +1,16 @@
 # VS Code dir
-.vscode
+.vscode/
 
 # Mac OS files
 .DS_Store
 
 # Python Cache
-__pycache__
+__pycache__/
 
 # Pycharm temp dir
-.idea
+.idea/
+
+# Build Directory
+dist/
+build/
+*.egg-info/

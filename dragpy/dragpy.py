@@ -4,6 +4,11 @@ import warnings
 
 class _DragObj:
     def __init__(self, ax):
+        """Generic draggable object initialization
+        
+        Draggable object is tagged as 'dragobj' using matplotlib's graphics 
+        objects' url property
+        """
         self.parentcanvas = ax.figure.canvas
         self.parentax = ax
 
@@ -12,10 +17,11 @@ class _DragObj:
         self.clicked = False
 
     def on_click(self, event):
+        """Wrapper for on_click and motion callback methods"""
         # Executed on mouse click
         if event.inaxes != self.parentax: return  # See if the mouse is over the parent axes object
 
-        # Check for overlaps, make sure we only fire for one object per click
+        # Check for object overlap
         timetomove = self.shouldthismove(event)
         if not timetomove: return
 
@@ -29,6 +35,11 @@ class _DragObj:
         self.clicked = True
     
     def shouldthismove(self, event):
+        """Determine whether the event firing object is the topmost rendered
+
+        Mitigates issues when the on_click callback fires for multiple 
+        overlapping objects at the same time, causing both to move
+        """
         # Check to see if this object has been clicked on
         contains, attrs = self.myobj.contains(event)
         if not contains:
@@ -52,24 +63,36 @@ class _DragObj:
         return timetomove
 
     def on_release(self, event):
+        """Mouse button release callback"""
         self.clicked = False
         self.disconnect()
 
     def disconnect(self):
+        """Disconnect mouse motion and click release callbacks from parent canvas"""
         self.parentcanvas.mpl_disconnect(self.mousemotion)
         self.parentcanvas.mpl_disconnect(self.clickrelease)
         self.parentcanvas.draw()
 
     def stopdrag(self):
+        """Disconnect on_click callback and remove dragobj url property tag"""
         self.myobj.set_url('')
         self.parentcanvas.mpl_disconnect(self.clickpress)
 
 
 class _DragLine(_DragObj):
     def __init__(self, ax):
+        """Generic draggable line class
+        
+        Provides line-specific on_motion callback
+        """
         super().__init__(ax)
 
     def on_motion(self, event):
+        """Update position of draggable line on mouse motion
+        
+        If self.snapto is set to a valid lineseries object, dragging will be
+        limited to the extent of the lineseries
+        """
         # Executed on mouse motion
         if not self.clicked:
             # See if we've clicked yet
@@ -98,11 +121,26 @@ class _DragLine(_DragObj):
 
 class _DragPatch(_DragObj):
     def __init__(self, ax, xy):
+        """Generic draggable line class
+        
+        Provides patch-specific on_motion callback and helpers
+
+        self.oldxy stores the previous location of the patch, or its initial
+        location if the object has not been moved. This is used for the 
+        on_motion cllback
+        """
         super().__init__(ax)
     
         self.oldxy = xy  # Store for motion callback
 
     def on_motion(self, event):
+        """Update position of draggable patch on mouse motion
+        
+        self.oldxy is used to calculate the mouse motion delta in the xy 
+        directions. This prevents the patch from jumping to the mouse location
+        due to (most) objects beind defined from either their lower left corner
+        or their center.
+        """
         # Executed on mouse motion
         if not self.clicked:
              # See if we've clicked yet
@@ -129,6 +167,7 @@ class _DragPatch(_DragObj):
         self.parentcanvas.draw()
 
     def on_release(self, event):
+        """Update helper xy property"""
         self.clicked = False
         
         # LBYL for patches with centers (e.g. ellipse) vs. xy location (e.g. rectangle)
@@ -164,18 +203,26 @@ class DragLine2D(_DragLine):
 
         self.snapto = snapto
 
-    def get_xydata(self):
+    @staticmethod
+    def get_validorientations():
+        return ('vertical', 'horizontal')
+
+    # Expose matplotlib object's property getters
+    @property
+    def xydata(self):
         """Return the xy data as a Nx2 numpy array."""
         return self.myobj.get_xydata()
     
-    def get_xdata(self, orig=True):
+    @property
+    def xdata(self, orig=True):
         """Return the xdata.
 
         If orig is True, return the original data, else the processed data.
         """
         return self.myobj.get_xdata(orig)
     
-    def get_ydata(self, orig=True):
+    @property
+    def ydata(self, orig=True):
         """Return the ydata.
 
         If orig is True, return the original data, else the processed data.
@@ -212,10 +259,10 @@ class FixedWindow(_DragPatch):
                  alpha=0.25, facecolor='limegreen', edgecolor='green', **kwargs):
         self.orientation = orientation.lower()
         if self.orientation == 'vertical':
-            axesdimension = get_axesextent(ax)[1]  # Axes height
+            axesdimension = axesextent(ax)[1]  # Axes height
             xy = (primaryedge, ax.get_ylim()[0])
         elif self.orientation == 'horizontal':
-            axesdimension = get_axesextent(ax)[0]  # Axes width
+            axesdimension = axesextent(ax)[0]  # Axes width
             xy = (ax.get_xlim()[0], primaryedge)
         else:
             raise ValueError(f"Unsupported orientation string: '{orientation}'")
@@ -258,6 +305,18 @@ class FixedWindow(_DragPatch):
 
         self.parentcanvas.draw()
 
+    @property
+    def bounds(self):
+        xy = self.myobj.get_xy()
+        if self.orientation == 'vertical':
+            return (xy[0], xy[0] + self.myobj.get_width())
+        elif self.orientation == 'horizontal':
+            return (xy[1], xy[1] + self.myobj.get_height())
+
+    @staticmethod
+    def validorientations():
+        return ('vertical', 'horizontal')
+
 
 class Window:
     def __init__(self, ax, primaryedge, windowstartsize, orientation='vertical', snapto=None, 
@@ -267,6 +326,7 @@ class Window:
         self.edges = []
         self.edges.append(DragLine2D(ax, primaryedge, orientation, snapto, color=edgecolor))
         self.edges.append(DragLine2D(ax, (primaryedge+windowstartsize), orientation, snapto, color=edgecolor))
+        self.orientation = orientation
 
         # Add spanning rectangle
         xy, width, height = self.spanpatchdims(*self.edges)
@@ -275,6 +335,14 @@ class Window:
 
         # TODO: Refactor to monitor changes in edge locations rather than firing on all redraws
         ax.figure.canvas.mpl_connect('draw_event', self.resizespanpatch)
+    
+    @property
+    def bounds(self):
+        xy = self.spanpatch.get_xy()
+        if self.orientation == 'vertical':
+            return (xy[0], xy[0] + self.spanpatch.get_width())
+        elif self.orientation == 'horizontal':
+            return (xy[1], xy[1] + self.spanpatch.get_height())
 
     def resizespanpatch(self, event):
         if self.spanpatch:
@@ -286,18 +354,22 @@ class Window:
     @staticmethod
     def spanpatchdims(edge1, edge2):
         # Find leftmost, rightmost points
-        minx = min(edge1.get_xdata() + edge2.get_xdata())  # Joining the two lists, not adding them
-        maxx = max(edge1.get_xdata() + edge2.get_xdata())  # Joining the two lists, not adding them
+        minx = min(edge1.xdata + edge2.xdata)  # Joining the two lists, not adding them
+        maxx = max(edge1.xdata + edge2.xdata)  # Joining the two lists, not adding them
 
-        # Find bottommostm, topmost points
-        miny = min(edge1.get_ydata() + edge2.get_ydata())  # Joining the two lists, not adding them
-        maxy = max(edge1.get_ydata() + edge2.get_ydata())  # Joining the two lists, not adding them
+        # Find bottommost, topmost points
+        miny = min(edge1.ydata + edge2.ydata)  # Joining the two lists, not adding them
+        maxy = max(edge1.ydata + edge2.ydata)  # Joining the two lists, not adding them
 
         xy = (minx, miny)
         width = abs(maxx - minx)
         height = abs(maxy - miny)
 
         return xy, width, height
+    
+    @staticmethod
+    def validorientations():
+        return ('vertical', 'horizontal')
 
 
 class DragArc(_DragPatch):
@@ -323,7 +395,7 @@ class DragRegularPolygon(_DragPatch):
 
         super().__init__(ax, xy)
 
-def get_axesextent(ax):
+def axesextent(ax):
     xlim = ax.get_xlim()
     ylim = ax.get_ylim()
 
