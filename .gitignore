@@ -10,5 +10,7 @@ __pycache__/
 # Pycharm temp dir
 .idea/
 
-# Flit Build Directory
+# Build Directory
 dist/
+build/
+*.egg-info/
