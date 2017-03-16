@@ -203,27 +203,32 @@ class DragLine2D(_DragLine):
 
         self.snapto = snapto
 
-    def get_xydata(self):
+    @staticmethod
+    def get_validorientations():
+        return ('vertical', 'horizontal')
+
+    # Expose matplotlib object's property getters
+    @property
+    def xydata(self):
         """Return the xy data as a Nx2 numpy array."""
         return self.myobj.get_xydata()
     
-    def get_xdata(self, orig=True):
+    @property
+    def xdata(self, orig=True):
         """Return the xdata.
 
         If orig is True, return the original data, else the processed data.
         """
         return self.myobj.get_xdata(orig)
     
-    def get_ydata(self, orig=True):
+    @property
+    def ydata(self, orig=True):
         """Return the ydata.
 
         If orig is True, return the original data, else the processed data.
         """
         return self.myobj.get_ydata(orig)
 
-    @staticmethod
-    def get_validorientations():
-        return ('vertical', 'horizontal')
 
 class DragEllipse(_DragPatch):
     def __init__(self, ax, xy, width, height, angle=0.0, **kwargs):
@@ -300,7 +305,8 @@ class FixedWindow(_DragPatch):
 
         self.parentcanvas.draw()
 
-    def get_bounds(self):
+    @property
+    def bounds(self):
         xy = self.myobj.get_xy()
         if self.orientation == 'vertical':
             return (xy[0], xy[0] + self.myobj.get_width())
@@ -329,6 +335,14 @@ class Window:
 
         # TODO: Refactor to monitor changes in edge locations rather than firing on all redraws
         ax.figure.canvas.mpl_connect('draw_event', self.resizespanpatch)
+    
+    @property
+    def bounds(self):
+        xy = self.spanpatch.get_xy()
+        if self.orientation == 'vertical':
+            return (xy[0], xy[0] + self.spanpatch.get_width())
+        elif self.orientation == 'horizontal':
+            return (xy[1], xy[1] + self.spanpatch.get_height())
 
     def resizespanpatch(self, event):
         if self.spanpatch:
@@ -352,13 +366,6 @@ class Window:
         height = abs(maxy - miny)
 
         return xy, width, height
-
-    def get_bounds(self):
-        xy = self.spanpatch.get_xy()
-        if self.orientation == 'vertical':
-            return (xy[0], xy[0] + self.spanpatch.get_width())
-        elif self.orientation == 'horizontal':
-            return (xy[1], xy[1] + self.spanpatch.get_height())
 
     @staticmethod
     def get_validorientations():
